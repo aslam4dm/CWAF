@@ -1,3 +1,6 @@
+#/usr/bin/env python3
+import string
+import re
 import requests
 import urllib
 import titles
@@ -10,11 +13,12 @@ import os
 import socket
 from col import Colours as c 
 
+#globally set variables
 is_target = None	# if argparsed or manually inputted set var to 1
 user_target = None
 title_shown = 0
 
-verbose_mode = 0
+verbose_mode = False
 
 options = ["target(s)", "nms", "wafw00f", "cwaf"]
 
@@ -103,13 +107,24 @@ def user_selection():
 				error_input()
 
 def target(*args):
+	#   improve to see whether user list input validates ipv4 and urls
+	#   better yet write a module which will validate the target input
+	#   to ensure that it meets all criteria 
+	global is_target
+	extensions = ["org", "com", "net", "fr"]
 	# write a file somewhere in the file system, to determine whether this program has been used before
 	# if it has, then dont show the prompt (how to parse multiple targets)
 	if os.path.exists("./.chk"):
-		pass
+		global verbose_mode
+		if verbose_mode == True:
+			print(c.cyan)
+			print("[In order to add multiple targets, simply add a target separated by a comma and a space.]")
+			print("e.g. example.com, something.com, somewhere.com || 192.168.44.33, books.org, 22.22.22.42")
+			print(c.end)
+		else: pass
 	else:
 		chk = open("./.chk", "w")
-		chk.write("1\n")
+		chk.write("y\n")
 		print(c.cyan)
 		print("[In order to add multiple targets, simply add a target separated by a comma and a space.]")
 		print("e.g. example.com, something.com, somewhere.com || 192.168.44.33, books.org, 22.22.22.42")
@@ -120,16 +135,51 @@ def target(*args):
 		if is_set != 1:
 			while is_set != 1:
 				target = input("set-target-> ")
-				if target == "":
+				if target in ["b", "B", "q", "Q"]:
+					return None
+				if (target == "") or ("." not in target):
 					print(c.red, end="")
-					print("you must enter a target, (URL or IPv4) e.g. target.com or 192.168.88.776")
-					print(c.end, end="")
+					print("you must enter a target, (URL or IPv4) e.g. target.com or 192.168.88.776", c.end)
+					continue
+				if target[0] in str([1,2,3,4,5,6,7,8,9,0]):
+					if len(target)<9:
+						print(c.red, end="")
+						print("invalid ipv4", c.end)
+						continue
+	#condition used to check whether the input target address has 3 periods, and is greater than len of 9
+					if  target.count(".")!=3:
+						print(c.red, end="")
+						print("invalid ipv4", c.end)
+						continue
+					is_set = 1
+					is_target = 1
+					continue
 				else:
 					is_set = 1
-			if "," in target:
-				targets = target.split(", ")
-				user_target = targets
-			else: user_target = target
+					is_target = 1
+			if is_set == 1:
+				if "," in target:
+					user_target = []
+					targets = target.split(", ")
+					for t in targets:
+						if t[0] in string.digits:
+							if len(t) < 9:
+								print(c.red, end="")
+								print("problem with {}".format(t), c.end)
+								continue
+							if t.count(".")!=3:
+								print(c.red, end="")
+								print("problem with {}".format(t), c.end)
+								continue
+							else:
+								user_target.append(t)
+						elif "." not in t:
+							print(c.red, end="")
+							print("problem with: {}".format(t), c.end) 
+						else:
+							user_target.append(t)
+				else: user_target = target
+			else: pass
 	else:
 		print("~> target(s) already set to {}{}{};".format(c.red, args[0], c.end), end=" ")
 		print("are you sure you want to change this [n]? ", end=" ")
@@ -139,12 +189,55 @@ def target(*args):
 		elif y_or_n[0] in ["n", "N", "x", "X", "c", "C"]:
 			return None
 		elif y_or_n in ["y", "Y"]:
-			target = input("set-target-> " )
-			if "," in target:
-				targets = target.split(", ")
-				user_target = targets
-			else: user_target = target
-	print("~> target set to {}{}{}".format(c.red, user_target, c.end))
+			while is_set != 1:
+				target = input("set-target-> ")
+				if target in ["b", "B", "q", "Q"]:
+					user_target = args[0]
+					return None
+				if (target == "") or ("." not in target):
+					print(c.red, end="")
+					print("you must enter a target, (URL or IPv4) e.g. target.com or 192.168.88.776", c.end)
+					continue
+				if target[0] in str([1,2,3,4,5,6,7,8,9,0]):
+					if len(target)<9:
+						print(c.red, end="")
+						print("invalid ipv4", c.end)
+						continue
+					if  target.count(".")!=3:
+						print(c.red, end="")
+						print("invalid ipv4", c.end)
+						continue
+					is_set = 1
+					is_target = 1
+					continue
+				else:
+					is_set = 1
+					is_target = 1
+			if is_set == 1:
+				if "," in target:
+					user_target = []
+					targets = target.split(", ")
+					for t in targets:
+						if t[0] in string.digits:
+							if len(t) < 9:
+								print(c.red, end="")
+								print("problem with {}".format(t), c.end)
+								continue
+							if t.count(".")!=3:
+								print(c.red, end="")
+								print("problem with {}".format(t), c.end)
+								continue
+							else:
+								user_target.append(t)
+						elif "." not in t:
+							print(c.red, end="")
+							print("problem with: {}".format(t), c.end) 
+						else:
+							user_target.append(t)
+				else: user_target = target
+			else: pass
+	if len(target) > 2:
+		print("~> target set to {}{}{}".format(c.red, user_target, c.end))
 	return None
 
 def nms(target):
@@ -191,8 +284,8 @@ def main():
 		user_target = target_list
 
 	if arg.verbose:
-		# increase verbosity
-		pass
+		global verbose_mode
+		verbose_mode = True
 
 	if arg.output:
 		#write output to output file
