@@ -1,4 +1,5 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
+
 import string
 import re
 import requests
